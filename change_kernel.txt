@@ -1,0 +1,80 @@
+# Change the kernel on a Jetson Orin Nano Devkit from beginning to end.
+
+1. Download
+2. Configure
+3. Build
+4. Install
+5. Flash
+
+1. Download
+============================================================
+see:
+- https://developer.nvidia.com/embedded/jetson-linux-r363
+
+	a. download "Driver Package (BSP)" in "DRIVERS"
+
+	b. download "Sample Root Filesystem" in "DRIVERS"
+
+	c. download "Bootlin Toolchain gcc 11.3" in "TOOLS"
+
+
+2. Configure
+============================================================
+see: 
+- https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/IN/QuickStart.html#to-flash-the-jetson-developer-kit-operating-software
+
+	a. run "tar xvf ${L4T_RELEASE_PACKAGE}"
+		i. where `L4T_RELEASE_PACKAGE` is like "Jetson_Linux_R36.3.0_aarch64.tbz2".
+		ii. assuming the downloads are in the directory "~" (home).
+
+	b. run "tar xvfp ${SAMPLE_FS_PACKAGE} -C Linux_for_Tegra/rootfs/" 
+		i. where `SAMPLE_FS_PACKAGE` is like "Tegra_Linux_Sample-Root-Filesystem_R36.3.0_aarch64.tbz2".
+		ii. understand: as seen in the verbose output of the last command (tar xvf ${L4T_RELEASE_PACKAGE}), `L4T_RELEASE_PACKAGE` contained a a directory "Linux_for_Tegra" which contains compressed files and subdirectories. The command "tar" decompresses all these files and subdirectories into usable forms. Command "tar" also accepts "switches" denoted by the "-${X}" ("dash x") syntax where X is some letter. Switches are convenient ways to enable features of a command. Each x, v, f, and p in "tar xvfp" are also switches but as a special tar syntax. Developers will often provide a "--help" switch to learn more their command.
+		iii. this command sets up the file hierarchy of the root filesystem that will be used on the Jetson.
+
+	c. run "cd Linux_for_Tegra"
+		i. "cd" is short for "Change Directory".
+
+	d. run "sudo ./tools/l4t_flash_prerequisites.sh"
+		i. "sudo" is short for "Superuser do".
+		ii. sudo bestows access the the root filesystem. Use your imagination to figure out why the original Unix developers wanted to block arbitrary code from changing these few important files.
+		iii. this script will use Ubuntu's package manager "APT" to download necessary dependencies for building and flashing.
+
+	e. run "sudo ./apply_binaries.sh"
+		i. this script is necessary for for the success of the entire process. This script will also break because of usage of some old Debian commands like "install".
+		ii. to fix, read the errors produced: they will be similar to "qemu failed with error message 11" or "dpkg failed to --install libc-bin"
+		iii. keep executing the script until you see something like "error: ~/Linux_for_Tegra/rootfs/dev/bin/random already exists"
+		iv. delete this file by running "sudo rm rootfs/dev/bin/random". Command "rm" is short for "remove".
+		v. the script will also make another file in the same directory called "urandom". Run "sudo rm rootfs/dev/bin/urandom"
+		vi. keep executing the script and deleting these files until "Success!" is printed in the terminal after lots of downloading. 
+
+
+3. Build
+============================================================
+see:
+- https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/AT/JetsonLinuxToolchain.html#at-jetsonlinuxtoolchain
+
+	a. run "mkdir $HOME/l4t-gcc"
+		i. Command "mkdir" is short for "Make Directory".
+		ii. The syntax "$HOME" ("dollar sign home") is an Environment Variable. Environment variables are bindings (generally, setting one thing to another). You can tell a word is referencing an environment variable if there is a dollar sign directly in front of it. Developers also generally follow the pattern of casing environment variables in all capital letters even though there is no system that enforces this pattern. The command "env" prints all the environment variables that have been set in your shell.
+
+	b. run "tar xvf ~/${TOOLCHAIN_COMPRESSED_FILES}"
+		i. where `TOOLCHAIN_COMPRESSED_FILES` is like "aarch64--glibc--stable-2022.08-1.tar.bz2"
+		ii. this will create a directory with the same name in your home directory.
+
+	c. run "mv ~/${TOOLCHAIN_DECOMPRESSED_FILES}/* ~/l4t-gcc/"
+		i. where `TOOLCHAIN_DECOMPRESSED_FILES` is like `TOOLCHAIN_COMPRESSED_FILES` but a directory file instead of a tarball file.
+		ii. Command "mv" is short for "Move".
+		iii. The wildcard "*" (star) will match the file name of every file in directory `TOOLCHAIN_DECOMPRESSED_FILES` and move them into directory at path "~/l4t-gcc/"
+		
+	d. run "ls -la ~/${TOOLCHAIN_DECOMPRESSED_FILES}"
+		i. there should be two files in the directory now: "." and "..". These are hidden files only printed because the "-a" switch was provided. These hidden files can be found in every directory and are used as quickhands for "here" (.) and "the directory before" (..).
+
+	e. run "rm -r ~/${TOOLCHAIN_DECOMPRESSED_FILES}"
+		i. since the directory is now empty, get rid of it.
+
+see:
+- https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/SD/Kernel/KernelCustomization.html
+
+	a. run "sudo apt install git-core build-essential bc"
+		i. Use the APT to install the following packages "git-core", "build-essential", and "bc".
