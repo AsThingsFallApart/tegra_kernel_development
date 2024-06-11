@@ -1,1 +1,13 @@
 Linux_for_Tegra
+*.ko
+*.ko.cmd
+*.mod
+*.mod.c
+*.mod.cmd
+*.mod.o.cmd
+*.o
+*.o.cmd
+modules.order
+.modules.order.cmd
+Module.symvers
+.Module.symvers.cmd

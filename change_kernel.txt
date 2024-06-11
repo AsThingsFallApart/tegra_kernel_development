@@ -1,10 +1,10 @@
-# Change the kernel on a Jetson Orin Nano Devkit from beginning to end.
+# Change the kernel on a Jetson Orin Nano Devkit from an x86_64 host, beginning to end.
 
 1. Download
 2. Configure
-3. Build
-4. Install
-5. Flash
+3. Make
+4. Flash
+5. Verify
 
 1. Download
 ============================================================
@@ -49,14 +49,14 @@ see:
 		vi. keep executing the script and deleting these files until "Success!" is printed in the terminal after lots of downloading. 
 
 
-3. Build
+3. Make
 ============================================================
 see:
 - https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/AT/JetsonLinuxToolchain.html#at-jetsonlinuxtoolchain
 
 	a. run "mkdir $HOME/l4t-gcc"
-		i. Command "mkdir" is short for "Make Directory".
-		ii. The syntax "$HOME" ("dollar sign home") is an Environment Variable. Environment variables are bindings (generally, setting one thing to another). You can tell a word is referencing an environment variable if there is a dollar sign directly in front of it. Developers also generally follow the pattern of casing environment variables in all capital letters even though there is no system that enforces this pattern. The command "env" prints all the environment variables that have been set in your shell.
+		i. command "mkdir" is short for "Make Directory".
+		ii. the syntax "$HOME" ("dollar sign home") is an Environment Variable. Environment variables are bindings (generally, setting one thing to another). You can tell a word is referencing an environment variable if there is a dollar sign directly in front of it. Developers also generally follow the pattern of casing environment variables in all capital letters even though there is no system that enforces this pattern. The command "env" prints all the environment variables that have been set in your shell.
 
 	b. run "tar xvf ~/${TOOLCHAIN_COMPRESSED_FILES}"
 		i. where `TOOLCHAIN_COMPRESSED_FILES` is like "aarch64--glibc--stable-2022.08-1.tar.bz2"
@@ -64,17 +64,115 @@ see:
 
 	c. run "mv ~/${TOOLCHAIN_DECOMPRESSED_FILES}/* ~/l4t-gcc/"
 		i. where `TOOLCHAIN_DECOMPRESSED_FILES` is like `TOOLCHAIN_COMPRESSED_FILES` but a directory file instead of a tarball file.
-		ii. Command "mv" is short for "Move".
-		iii. The wildcard "*" (star) will match the file name of every file in directory `TOOLCHAIN_DECOMPRESSED_FILES` and move them into directory at path "~/l4t-gcc/"
+		ii. command "mv" is short for "Move".
+		iii. the wildcard "*" (star) will match the file name of every file in directory `TOOLCHAIN_DECOMPRESSED_FILES` and move them into directory at path "~/l4t-gcc/"
 		
 	d. run "ls -la ~/${TOOLCHAIN_DECOMPRESSED_FILES}"
-		i. there should be two files in the directory now: "." and "..". These are hidden files only printed because the "-a" switch was provided. These hidden files can be found in every directory and are used as quickhands for "here" (.) and "the directory before" (..).
+		i. there should be two files in the directory now: "." and "..". These are hidden files only visible because the "-a" switch was provided. These hidden files can be found in every directory and are used as quickhands for "here" (.) and "the directory before" (..).
 
 	e. run "rm -r ~/${TOOLCHAIN_DECOMPRESSED_FILES}"
 		i. since the directory is now empty, get rid of it.
+		ii. now the tools necessary to compile the kernel are available. Generally, the collection of tools necessary to enable a workflow is called a "toolchain".
 
 see:
 - https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/SD/Kernel/KernelCustomization.html
 
 	a. run "sudo apt install git-core build-essential bc"
 		i. Use the APT to install the following packages "git-core", "build-essential", and "bc".
+
+	b. run "cd ~/Linux_for_Tegra/source"
+
+	c. run "./source_sync.sh -k -t ${RELEASE_TAG}"
+		i. where `RELEASE_TAG` is like "jetson_36.3"
+		ii. see: https://docs.nvidia.com/jetson/archives/r36.3/ReleaseNotes/Jetson_Linux_Release_Notes_r36.3.pdf
+		iii. get a snack, this will take longer than compiling a rust project
+		iv. after the script is done, the BASH prompt will be returned, and all the kernel source files will be at path "~/Linux_for_Tegra/source/kernel/kernel-jammy-src"
+
+	d. run "export CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu-"
+		i. command "export" creates an environment variable in the current shell instance. This means closing the terminal window will wipe this environment variable and it will have to be re-exported.
+		ii. the environment variable created is given the identifier "CROSS_COMPILE" by typing the desired name immediately after the command. This name is significant since the compilation tools are hard-coded to query an environment variable with the name "CROSS_COMPILE".
+
+	e. run "echo $CROSS_COMPILE"
+		i. command "echo" will print info to terminal
+		ii. the desired output is "/home/${YOU!}/l4t-gcc/bin/aarch64-buildroot-linux-gnu-", the value just set to environment variable "CROSS_COMPILE"
+		iii. obviously this is not necessary, unless sanity is counted as necessary.
+
+	f. run "make -C kernel"
+		i. the tegra kernel, based off the Linux kernel, is a make project. Make is a system for compiling projects that involve more than one source file. It enables project-wide compilation only for source files that haven't been compiled or changed before. Systems would be impossible to scale without a compilation-manager like make since seeing the effect of a change in code, for example, would involve waiting for thousands of files to compile.
+		ii. make compilation is not automatic: developers have to write which files are compiled in files called "Makefiles"
+		iii. thankfully, NVIDIA provides a nice Makefile that denotes which types of objects are compiled from their respective source files, which directories to change to, and automatic utilization of nearly 100% of the CPU to do this.
+
+	g. run "export INSTALL_MOD_PATH=~/Linux_for_Tegra/rootfs/"
+		i. this command exports an environment variable "INSTALL_MOD_PATH" that NVIDIA uses to find the root file system to be flashed
+
+	h. run "sudo -E make install -C kernel"
+		i. there are a couple of new things here: the "-E" switch tells commmand "sudo" to preserve the environment if the security policy allows. this allows CROSS_COMPILE and INSTALL_MOD_PATH to be used to change root-level files in command "make install"
+		ii. the "-C" switch for command "make install" tells the make program to change to the directory "kernel" before following instructions inscribed in that directory's Makefile.
+
+	i. run "cp kernel/kernel-jammy-src/arch/arm64/boot/Image ~/Linux_for_Tegra/kernel/Image"
+		i. command "cp" is short for "copy"
+		ii. the parameters (things that come after the command that don't have dashes infront of them like switches) are paths.
+		iii. in english: copy the file "Image" found at path "./kernel/kernel-jammy-src/arch/arm64/boot/Image" (just compiled from step h) to path "~/Linux_for_Tegra/kernel/" and name the copied file "Image"
+
+	j. run "export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src"
+
+	k. run "make modules"
+
+	l. run "sudo -E make modules_install"
+		i. the NVIDIA engineers decided not to include a warm, fuzzy "modules installed successfully" feedback at the end of this command. It's ok, the script did everything it is supposed to do.
+
+	m. run "cd ~/Linux_for_Tegra"
+
+	n. run "sudo ./tools/l4t_update_initrd.sh"
+		i. this command calls a binary named "nv-update-initrd" that was installed during Configure, step e: "sudo ./apply_binaries.sh"
+		ii. thankfully, this script has a warm fuzzy at the end. Everything in life is in order.
+
+	o. run "cd ~/Linux_for_Tegra/source"
+
+	p. run "make dtbs"
+		i. "dtbs" is short for "device tree blobs"
+		ii. the device tree enables lightweight hardware discovery by denoting memory addresses and other metadata of all hardware in an embedded device.
+
+	q. run "cp nvidia-oot/device-tree/platform/generic-dts/dtbs/* ~/Linux_for_Tegra/kernel/dtb/"
+		i. this command globs (matches) everything in the directory "dtbs" at path "./nvidia-oot/device-tree/platform/generic-dts/dtbs/" and copies it to directory "dtb" at path "~/Linux_for_Tegra/kernel/dtb/".
+		ii. "oot" is short for "out of tree". Out of tree kernel modules are not baked-in the tegra kernel. That is, they can be attached and removed after the kernel is booted. Since they are not bundled with the kernel, they do not add to the size of the final "Image" file.
+
+
+4. Flash
+============================================================
+see:
+- https://docs.nvidia.com/jetson/archives/r36.3/DeveloperGuide/IN/QuickStart.html#to-flash-the-jetson-developer-kit-operating-software
+
+	a. assert an microSD card with atleast 64 gigabytes of memory is inserted into the jetson's microSD card port
+		i. on the devkit, the microSD card port is under the jetson module
+		ii. the port is invisible from top-down, pick up the devkit and look under the jetson module from the long side to see it.
+		iii. it is above the pins "LED -", "LED +", "UART RXD", "UART TXD", and "DIS"
+
+	b. assert the jetson is in "recovery mode"
+		i. recovery mode is set by shorting the "FC REC" pin.
+		ii. On the devkit, the "FC REC" pin is located under the jetson module which is located under the fan.
+		iii. Short FC REC by taking a jumper cable and attaching one end to FC REC and another end to any pin labled "GND" (ground).
+
+	c. assert the jetson devkit is connected to the host machine
+		i. a USB-C (Jetson-side) to USB-A (host machine-side) would work
+
+	d. assert the barrel power cable is disconnected
+		i. the power LED near the USB-C port should be off.
+
+	e. plug in the barrel power cable
+		i. the power LED should emit green
+		ii. if a display port cable is plugged in and connected to a monitor, nothing should show up
+		iii. the jetson module is waiting for commands
+
+	f. run "cd ~/Linux_for_Tegra"
+
+	g. run "sudo ./tools/kernel_flash/l4t_initrd_flash.sh --external-device mmcblk0p1 -c tools/kernel_flash/flash_l4t_t234_nvme.xml -p "-c bootloader/generic/cfg/flash_t234_qspi.xml" --showlogs --network usb0 jetson-orin-nano-devkit internal
+		i. this command will take up to ten minutes.
+		ii. as seen in the verbose output, it handles operations like generating files from path "~/Linux_for_Tegra/rootfs" and transferring them from host machine to target (Jetson) via Network File System (NFS)
+		iii. it is at this point where many uncaught bugs will result in bizzare hangs; read error messages and assert you have the most up-to-date documentation to debug.
+		iv. if successful, the jetson will reboot itself despite being in recovery mode. The system them prompts to accept the NVIDIA Software License Agreement for Tegra Linux.
+
+
+5. Verify 
+============================================================
+	a. go through system configuration and pick your preferences
