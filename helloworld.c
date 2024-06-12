@@ -2,12 +2,12 @@
 #include <linux/init.h>
 
 static int __init helloworld_init(void) {
-	pr_info("hello_world: Hello world initialization!\n");
+	pr_info("helloworld: Hello world initialization!\n");
 	return 0;
 }
 
 static void __exit helloworld_exit(void) {
-	pr_info("hello_world: Hello world exit!\n");
+	pr_info("helloworld: Hello world exit!\n");
 }
 
 module_init(helloworld_init);

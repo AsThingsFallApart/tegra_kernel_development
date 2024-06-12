@@ -146,120 +146,174 @@ see:
 		i. command "cp" is short for "copy"
 		ii. the parameters (things that come after the command that don't have dashes infront of them like switches) are paths.
 		iii. in english: copy the file "helloworld.c" found at path "../../" to directory "i2c" found at path "kernel/kernel-jammy-src/drivers/media/i2c/" and name it the same
+		iv. this puts file `helloworld.c` inside the kernel source directory
 
 	
-	e. run "vi kernel/kernel-jammy-src/drivers/media/i2c/Makefile"
-
-		i. press '2'
-		ii. press 'j'
-		iii. press 'd'
-		iv. press 'd'
-		v. press 'u'
-		vi. press 'p'
-		viii. press '5'
-		ix. press '|'
-		x. press 'd'
-		xi. press '$'
-		xii. press 'a'
-		xiii. press 'y'
-		xvi. press 'spacebar'
-		xv. press '+'
-		xvi. press '='
-		xvii. press 'h'
-		xviii. press 'e'
-		xix. press 'l'
-		xx. press 'l'
-		xxi. press 'o'
-		xxii. press 'w'
-		xxiii. press 'o'
-		xxiv. press 'r'
-		xxv. press 'l'
-		xxvi. press 'd'
-		xxvii. press '.'
-		xxviii. press 'o'
-		xxviv. hold 'ctrl'
-		xxx. press 'c'
-		xxxi. release 'ctrl'
-		xxxii. press ':'
-		xxxiii. press 'w'
-		xxxiv. press 'q'
-		xxxv. press 'enter'
-
-		?. "why did that just happen" -> https://www.barbarianmeetscoding.com/boost-your-coding-fu-with-vscode-and-vim/introduction/
-
-		xxxvi. this step and the step before are the entire process of adding a driver to the kernel source
-		xxxvii. the make program now knows to include "helloworld.c" in an "in-tree module" when compiling; more on this later
+	e. use your favorite text editor to open file `Makefile` at path "./kernel/kernel-jammy-src/drivers/media/i2c/Makefile"
 
 
-	d. run "export CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu-"
+	f. add the line "obj-$(CONFIG_HELLOWORLD) += helloworld.o"
+
+		i. the make program now knows to include "helloworld.c" as a "module" when compiling; more on this later
+
+	
+	g. use your favorite text editor to open file `Kconfig` at path "./kernel/kernel-jammy-src/drivers/media/i2c/Kconfig"
+
+
+	h. add the following block anywhere in file `Kconfig`:
+	"
+	config HELLOWORLD
+		tristate "in-tree module test"
+		default y
+		help
+		  This is a test module designed to exemplify how a module is compiled
+		  with the kernel in-tree.
+
+		  To compile this driver as a module, choose M here: the
+		  module will be called helloworld.
+	"
+
+		i. file `Kconfig` is used by the make system to enumerate kernel features
+		ii. choosing which drivers are included the final `Image` file that results from compiling the kernel comes from the kernel configuration file (`.config`)
+		iii. as a consequence, a driver can be inside the kernel source and not be included in the final `Image` file if it isn`t enabled in the kernel configuration file
+
+	
+	i. run "export ARCH=arm64"
+		
+		i. "arm64" is a synonym for ARM 64-bit architecture's official name "aarch64"
+		ii. customizing the configuration in the next step relies on this environment variable to know which architecture the configuration is targeting
+		iii. by default ARCH=x86_64 which is not the same architecture the Jetson module was built with
+
+
+	j. run "cd ${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/source/kernel/kernel-jammy-src"
+
+
+	k. run "make menuconfig"
+
+		i. look at the top left of the shell: assert the line matches ".config - Linux/arm64 5.15.136 Kernel Configuration"
+		ii. press '/'
+		iii. type "helloworld"
+		iv. press 'Enter'
+		v. the block added to the `Kconfig` file should be found; take note of its location
+		vi. press 'Enter'
+		vii. press 'd'
+		viii. press 'DownArrow' until "<M> Multimedia support  --->" is hovered
+		viv. press 'Enter'
+		x. press 'e' four times
+		xi. press 'Enter'
+		xii. press 'c'
+		xiii. press 'Enter'
+		xiv. notice: the line "<M> in-tree module test"; the configuration exists and is enabled as a module
+		xv. press 'Escape'
+		xvi. press 'RightArrow' three times
+		xvii. press 'Enter'
+		xviii. press 'Enter'
+		xix. press 'Escape' until back in the command line
+
+
+	l. run "vi .config"
+		
+		i. press '/' to search
+		ii. type "HELLOWORLD"
+		iii. press 'Enter'
+		iv. notice: the configuration was successfully written to file `.config` and includes the new driver file
+		v. press ':'
+		vi. press 'q'
+		vii. press 'Enter' to exit vi
+
+
+	m. run "export CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu-"
 
 		i. command "export" creates an environment variable in the current shell instance. This means closing the terminal window will wipe this environment variable and it will have to be re-exported.
 		ii. the environment variable created is given the identifier "CROSS_COMPILE" by typing the desired name immediately after the command. This name is significant since the compilation tools are hard-coded to query an environment variable with the name "CROSS_COMPILE".
 
 
-	e. run "echo $CROSS_COMPILE"
+	n. run "echo $CROSS_COMPILE"
 
 		i. command "echo" will print info to terminal
 		ii. the desired output is "/home/${YOU!}/l4t-gcc/bin/aarch64-buildroot-linux-gnu-", the value just set to environment variable "CROSS_COMPILE"
 		iii. obviously this is not necessary, unless sanity is counted as necessary.
 
 
-	f. run "make -C kernel"
+	o. run "make -C kernel"
 
 		i. the tegra kernel, based off the Linux kernel, is a make project. Make is a system for compiling projects that involve more than one source file. It enables project-wide compilation only for source files that haven't been compiled or changed before. Systems would be impossible to scale without a compilation-manager like make since seeing the effect of a code change, for example, would involve waiting not just for the one changed file to compile but for all files to compile.
 		ii. which files make compiles is not chosen automatically: developers have to explicitally state which files are compiled in files called "Makefiles"
 		iii. thankfully, NVIDIA provides a nice Makefile that denotes which types of objects are compiled from their respective source files, which directories to change to, and make switches for automatic utilization of nearly 100% of the CPU.
 		iv. press the "meta" key (usually the windows key or Mac's option key), type "system", and press enter on "system monitor" to view how make is using the host machine's resources
+		v. the `.config` file generated earlier tells the make program to include `helloworld.o` in the final kernel image
 
 
-	g. run "export INSTALL_MOD_PATH=${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/"
+	p. run "export INSTALL_MOD_PATH=${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/"
 
 		i. this command exports an environment variable "INSTALL_MOD_PATH" that NVIDIA uses to find the root file system to be flashed
 
 
-	h. run "sudo -E make install -C kernel"
+	q. run "sudo -E make install -C kernel"
 
 		i. there are a couple of new things here: the "-E" switch tells commmand "sudo" to preserve the environment if the security policy allows. this allows CROSS_COMPILE and INSTALL_MOD_PATH to be used to change root-level files in command "make install"
 		ii. the "-C" switch for command "make install" tells the make program to change to the directory "kernel" before following instructions inscribed in that directory's Makefile.
 
 
-	i. run "cp kernel/kernel-jammy-src/arch/arm64/boot/Image ${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/kernel/Image"
+	r. run "cp kernel/kernel-jammy-src/arch/arm64/boot/Image ../kernel/Image"
 
 
-	j. run "export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src"
+	s. run "export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src"
 
 
-	k. run "make modules"
+	t. run "make modules"
 
 
-	l. run "sudo -E make modules_install"
+	u. run "sudo -E make modules_install"
 
 		i. the NVIDIA engineers decided not to include a warm, fuzzy "modules installed successfully" feedback at the end of this command.
 		ii. it's ok, the script did everything it is supposed to do.
 
 
-	m. run "cd ${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra"
+	v. run "cd .."
 
 
-	n. run "sudo ./tools/l4t_update_initrd.sh"
+	x. run "sudo ./tools/l4t_update_initrd.sh"
 
 		i. this command calls a binary named "nv-update-initrd" that was installed during Configure, step e: "sudo ./apply_binaries.sh"
 		ii. thankfully, this script has a warm fuzzy at the end. Everything in life is in order.
 
 
-	o. run "cd source"
+	y. run "cd source"
 
 
-	p. run "make dtbs"
+	z. run "make dtbs"
 
 		i. "dtbs" is short for "device tree blobs"
 		ii. the device tree enables lightweight hardware discovery by denoting memory addresses and other metadata of all hardware in an embedded device
 
 
-	q. run "cp nvidia-oot/device-tree/platform/generic-dts/dtbs/* ../kernel/dtb/"
+	aa. run "cp nvidia-oot/device-tree/platform/generic-dts/dtbs/* ../kernel/dtb/"
 
 		i. this command globs (matches) everything in the directory "dtbs" at path "./nvidia-oot/device-tree/platform/generic-dts/dtbs/" and copies it to directory "dtb" at path "~/Linux_for_Tegra/kernel/dtb/".
 		ii. "oot" is short for "out of tree". Out of tree kernel modules are not baked-in the tegra kernel like "in-tree" modules. That is, they can be attached and removed after the kernel is booted. Since they are not bundled with the kernel, they do not add to the size of the final "Image" file.
+
+
+	ab. run "cd ${HOME_TO_PROECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/lib/modules/5.15.136-tegra/kernel/drivers/media/i2c"
+		i. this directory is where the multimedia, i2c drivers are
+		ii. since this directory is a subdirectory of `rootfs`, and `rootfs` will be copied from host to to the Jetson module, everything in this directory will be present on the Jetson Linux immediately after flashing
+
+
+	ac. run "ls -la"
+		i. kernel object `helloworld.ko` should exist
+		ii. if `helloworld.ko` is not here, copy `helloworld.c` to path "${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/source/kernel/kernel-jammy-src/drivers/media/i2c/", edit the `Makefile` in the same directory to include the line "obj-$(CONFIG_HELLOWORLD) += helloworld.o", use your favorite text editor to add the following block anywhere in the `Kconfig` file in the same directory:
+		"
+			config HELLOWORLD
+			tristate "in-tree module test"
+			default y
+			help
+			  This is a test module designed to exemplify how a module is compiled
+			  with the kernel in-tree.
+
+			  To compile this driver as a module, choose M here: the
+			  module will be called helloworld.
+		",
+		run command "ARCH=arm64 make menuconfig", change nothing, save, make again, install again, and check the `rootfs` directory again (steps Make, d through r).
 
 
 
@@ -273,6 +327,8 @@ see:
 		i. on the devkit, the microSD card port is under the jetson module
 		ii. the port is invisible from top-down, pick up the devkit and look under the jetson module from the long side to see it.
 		iii. it is above the pins "LED -", "LED +", "UART RXD", "UART TXD", and "DIS"
+
+	a (alternate: use NVMe). assert an NVMe with atleast 64 gigabytes of memory is inserted into the long M.2 slot under the devkit
 
 
 	b. assert the jetson is in "recovery mode"
@@ -310,7 +366,55 @@ see:
 		iv. if successful, the jetson will reboot itself despite being in recovery mode. The system then prompts to accept the NVIDIA Software License Agreement for Tegra Linux.
 
 
+	g (alternate: use NVMe). run "sudo ./tools/kernel_flash/l4t_initrd_flash.sh --external-device nvme0n1p1 -c tools/kernel_flash/flash_l4t_t234_nvme.xml -p "-c bootloader/generic/cfg/flash_t234_qspi.xml" --showlogs --network usb0 jetson-orin-nano-devkit internal"
+
+		i. notice the difference: mmcblk0p1 -> nvme0n1p1
+
+
 
 5. Verify 
 ============================================================
 	a. go through system configuration and pick your preferences
+
+		i. Jetson Linux will restart to apply changes
+
+	
+	b. press 'ctrl' + 'alt' + 't' to quickly open a BASH
+
+	
+	c. run "cd /lib/modules/5.15.136-tegra/kernel/drivers/media/i2c"
+
+
+	d. run "ls -la"
+		
+		i. verify that `helloworld.ko` exists on Jetson Linux
+
+
+	e. run "sudo dmesg"
+		
+		i. command "dmesg" is short for "diagnostic messages"
+		ii. when kernel driver developers want to print something, it prints to this message buffer
+		iii. feel free to explore what happened from second 0 to present
+	
+	f. run "sudo modprobe helloworld"
+
+		i. command "modprobe" adds and removes modules from the kernel
+		
+
+	g. run "sudo dmesg"
+
+		i. the latest message in the buffer should be "helloworld: Hello world initialization!"
+
+
+	h. run "sudo modprobe -r helloworld"
+		
+		i. switch "-r" for command "modprobe" changes modprobe's behavior to remove modules instead of add them
+
+
+	i. run "sudo dmesg"
+
+		i. the latest message in the buffer should be "helloworld: Hello world exit!"
+
+
+
+You have successfully made and flashed a custom kernel to a Jetson Orin Nano Devkit
