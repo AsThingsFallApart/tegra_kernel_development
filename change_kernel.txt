@@ -177,18 +177,26 @@ see:
 		ii. choosing which drivers are included the final `Image` file that results from compiling the kernel comes from the kernel configuration file (`.config`)
 		iii. as a consequence, a driver can be inside the kernel source and not be included in the final `Image` file if it isn`t enabled in the kernel configuration file
 
+
+	i. use your favorite text editor to open file `defconfig` at path "./kernel/kernel-jammy-src/arch/arm64/configs/defconfig"
+
+
+	j. add the following line anywhere in file `defconfig`: "CONFIG_HELLOWORLD=y"
+
+		i. file `defconfig` is used in a later command "make -C kernel" to enumerate which modules to include in compilation
+
 	
-	i. run "export ARCH=arm64"
+	k. run "export ARCH=arm64"
 		
 		i. "arm64" is a synonym for ARM 64-bit architecture's official name "aarch64"
 		ii. customizing the configuration in the next step relies on this environment variable to know which architecture the configuration is targeting
 		iii. by default ARCH=x86_64 which is not the same architecture the Jetson module was built with
 
 
-	j. run "cd ${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/source/kernel/kernel-jammy-src"
+	l. run "cd ${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/source/kernel/kernel-jammy-src"
 
 
-	k. run "make menuconfig"
+	m. run "make menuconfig"
 
 		i. look at the top left of the shell: assert the line matches ".config - Linux/arm64 5.15.136 Kernel Configuration"
 		ii. press '/'
@@ -211,7 +219,7 @@ see:
 		xix. press 'Escape' until back in the command line
 
 
-	l. run "vi .config"
+	n. run "vi .config"
 		
 		i. press '/' to search
 		ii. type "HELLOWORLD"
@@ -222,20 +230,20 @@ see:
 		vii. press 'Enter' to exit vi
 
 
-	m. run "export CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu-"
+	o. run "export CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu-"
 
 		i. command "export" creates an environment variable in the current shell instance. This means closing the terminal window will wipe this environment variable and it will have to be re-exported.
 		ii. the environment variable created is given the identifier "CROSS_COMPILE" by typing the desired name immediately after the command. This name is significant since the compilation tools are hard-coded to query an environment variable with the name "CROSS_COMPILE".
 
 
-	n. run "echo $CROSS_COMPILE"
+	p. run "echo $CROSS_COMPILE"
 
 		i. command "echo" will print info to terminal
 		ii. the desired output is "/home/${YOU!}/l4t-gcc/bin/aarch64-buildroot-linux-gnu-", the value just set to environment variable "CROSS_COMPILE"
 		iii. obviously this is not necessary, unless sanity is counted as necessary.
 
 
-	o. run "make -C kernel"
+	q. run "make -C kernel"
 
 		i. the tegra kernel, based off the Linux kernel, is a make project. Make is a system for compiling projects that involve more than one source file. It enables project-wide compilation only for source files that haven't been compiled or changed before. Systems would be impossible to scale without a compilation-manager like make since seeing the effect of a code change, for example, would involve waiting not just for the one changed file to compile but for all files to compile.
 		ii. which files make compiles is not chosen automatically: developers have to explicitally state which files are compiled in files called "Makefiles"
@@ -244,62 +252,62 @@ see:
 		v. the `.config` file generated earlier tells the make program to include `helloworld.o` in the final kernel image
 
 
-	p. run "export INSTALL_MOD_PATH=${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/"
+	r. run "export INSTALL_MOD_PATH=${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/"
 
 		i. this command exports an environment variable "INSTALL_MOD_PATH" that NVIDIA uses to find the root file system to be flashed
 
 
-	q. run "sudo -E make install -C kernel"
+	s. run "sudo -E make install -C kernel"
 
 		i. there are a couple of new things here: the "-E" switch tells commmand "sudo" to preserve the environment if the security policy allows. this allows CROSS_COMPILE and INSTALL_MOD_PATH to be used to change root-level files in command "make install"
 		ii. the "-C" switch for command "make install" tells the make program to change to the directory "kernel" before following instructions inscribed in that directory's Makefile.
 
 
-	r. run "cp kernel/kernel-jammy-src/arch/arm64/boot/Image ../kernel/Image"
+	t. run "cp kernel/kernel-jammy-src/arch/arm64/boot/Image ../kernel/Image"
 
 
-	s. run "export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src"
+	u. run "export KERNEL_HEADERS=$PWD/kernel/kernel-jammy-src"
 
 
-	t. run "make modules"
+	v. run "make modules"
 
 
-	u. run "sudo -E make modules_install"
+	w. run "sudo -E make modules_install"
 
 		i. the NVIDIA engineers decided not to include a warm, fuzzy "modules installed successfully" feedback at the end of this command.
 		ii. it's ok, the script did everything it is supposed to do.
 
 
-	v. run "cd .."
+	x. run "cd .."
 
 
-	x. run "sudo ./tools/l4t_update_initrd.sh"
+	y. run "sudo ./tools/l4t_update_initrd.sh"
 
 		i. this command calls a binary named "nv-update-initrd" that was installed during Configure, step e: "sudo ./apply_binaries.sh"
 		ii. thankfully, this script has a warm fuzzy at the end. Everything in life is in order.
 
 
-	y. run "cd source"
+	z. run "cd source"
 
 
-	z. run "make dtbs"
+	aa. run "make dtbs"
 
 		i. "dtbs" is short for "device tree blobs"
 		ii. the device tree enables lightweight hardware discovery by denoting memory addresses and other metadata of all hardware in an embedded device
 
 
-	aa. run "cp nvidia-oot/device-tree/platform/generic-dts/dtbs/* ../kernel/dtb/"
+	ab. run "cp nvidia-oot/device-tree/platform/generic-dts/dtbs/* ../kernel/dtb/"
 
 		i. this command globs (matches) everything in the directory "dtbs" at path "./nvidia-oot/device-tree/platform/generic-dts/dtbs/" and copies it to directory "dtb" at path "~/Linux_for_Tegra/kernel/dtb/".
 		ii. "oot" is short for "out of tree". Out of tree kernel modules are not baked-in the tegra kernel like "in-tree" modules. That is, they can be attached and removed after the kernel is booted. Since they are not bundled with the kernel, they do not add to the size of the final "Image" file.
 
 
-	ab. run "cd ${HOME_TO_PROECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/lib/modules/5.15.136-tegra/kernel/drivers/media/i2c"
+	ac. run "cd ${HOME_TO_PROECT}/tegra_kernel_development/Linux_for_Tegra/rootfs/lib/modules/5.15.136-tegra/kernel/drivers/media/i2c"
 		i. this directory is where the multimedia, i2c drivers are
 		ii. since this directory is a subdirectory of `rootfs`, and `rootfs` will be copied from host to to the Jetson module, everything in this directory will be present on the Jetson Linux immediately after flashing
 
 
-	ac. run "ls -la"
+	ad. run "ls -la"
 		i. kernel object `helloworld.ko` should exist
 		ii. if `helloworld.ko` is not here, copy `helloworld.c` to path "${HOME_TO_PROJECT}/tegra_kernel_development/Linux_for_Tegra/source/kernel/kernel-jammy-src/drivers/media/i2c/", edit the `Makefile` in the same directory to include the line "obj-$(CONFIG_HELLOWORLD) += helloworld.o", use your favorite text editor to add the following block anywhere in the `Kconfig` file in the same directory:
 		"
