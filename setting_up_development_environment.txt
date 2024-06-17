@@ -11,6 +11,7 @@ Procedure
 
 		i. this file tells clang to ignore certain problematic gcc flags
 		ii. this file belongs in the root directory of the kernel
+		iii. see: https://github.com/clangd/clangd/issues/1582
 
 
 	b. run "cd Linux_for_Tegra/source/"
