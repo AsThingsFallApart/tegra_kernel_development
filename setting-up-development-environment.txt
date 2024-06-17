@@ -1,0 +1,36 @@
+# Setting up development environment
+
+Requirements
+====================================
+- clangd
+
+
+Procedure
+====================================
+	a. run "cp ./.clangd Linux_for_Tegra/sources/kernel/kernel-jammy-src/"
+
+		i. this file tells clang to ignore certain problematic gcc flags
+		ii. this file belongs in the root directory of the kernel
+
+
+	b. run "cd Linux_for_Tegra/source/"
+
+		i. this command goes to the parent directory of all libraries involved in compiling possible kernels for the Jetson Linux operating system
+
+	
+	c. run "ARCH=arm64 CROSS_COMPILE=~/l4t-gcc/bin/aarch64-buildroot-linux-gnu- -C kernel/"
+
+		i. this command makes the default Linux kernel cross-compiled for the Jetson's architecture: aarch64 (a.k.a. "arm64")
+
+	
+	d. run "cd kernel/kernel-jammy-src"
+
+		i. this command changes directory to the kernel that was just made called "kernel-jammy-src"
+
+	
+	e. run "./scripts/clang-tools/gen_compile_commands.py"
+
+		i. this python script generates the clang compilation commands for every .c source file recursively
+
+
+	f. done: use favorite text editor to edit kernel source files with language server protocol capabilities

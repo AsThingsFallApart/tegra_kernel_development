@@ -1,0 +1,7 @@
+CompileFlags:
+  Remove:
+    - -fconserve-stack
+    - -femit-struct-debug-baseonly
+    - -fno-allow-store-data-races
+    - -march=*
+    - -mabi=*
