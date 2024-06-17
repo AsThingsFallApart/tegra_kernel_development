@@ -1,0 +1,43 @@
+We're going to need:
+
+1. Driver structure like: 
+"
+struct i2c_driver {
+	unsigned int class;
+	/* standard driver model interfaces */
+	int (*probe) (struct i2c_client *client, const struct i2c_device_id *id);
+	int (*remove) (struct i2c_client *client);
+	int (*probe_new) (struct i2c_client *client);
+	int (*shutdown) (struct i2c_client *client);
+	struct device_driver driver;
+	const struct i2c_device_id *id_table;
+};
+"
+
+2. Data structure like: 
+"
+struct i2c_msg {
+	__u16 addr;
+	__u16 flags;
+	#define I2C_M_TEN 0x0010
+	#define I2C_M_RD 0c0001
+	__u16 len;
+	__u8 *buf;
+};
+"
+
+3. implement the `int (*probe) (struct i2c_client *client)` callback like:
+"
+int probe(struct i2c_client *client) {
+	do_stuff();
+}
+"
+- "the `probe()` callback in the `struct i2c_driver` structure is invoked any time an I2C device is instantiated on the bus and claims this driver."
+-- Linux Driver Development, Everything you need to start with device driver development for Linux kernel and embedded Linux (John Madieu, 265) 
+
+4. implement the `int (*remove) (struct i2c_client *client)` callback like:
+"
+int remove(struct i2c_client *client) {
+	do_stuff();
+}
+"
